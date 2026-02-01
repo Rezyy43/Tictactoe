@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tic Tac Toe Ultimate</title>
+
+<style>
+:root{--x:#00f7ff;--o:#ff00ff}
+*{box-sizing:border-box;font-family:Arial}
+body{margin:0;height:100vh;overflow:hidden;color:#fff;background:#000}
+.bg{
+ position:fixed;inset:0;z-index:-1;
+ background:
+  radial-gradient(circle at 20% 30%,#0ff2,transparent 40%),
+  radial-gradient(circle at 80% 60%,#f0f2,transparent 45%),
+  linear-gradient(120deg,#050505,#000);
+ animation:hue 12s linear infinite
+}
+@keyframes hue{to{filter:hue-rotate(360deg)}}
+.center{height:100%;display:flex;align-items:center;justify-content:center}
+.card{
+ width:94vw;max-width:400px;
+ background:#050505cc;border-radius:16px;
+ padding:14px;text-align:center;
+ box-shadow:0 0 25px #0ff4
+}
+.hidden{display:none}
+h1{text-shadow:0 0 12px #0ff}
+button,select{
+ background:#000;border:2px solid #0ff;color:#0ff;
+ border-radius:8px;padding:8px 12px;margin:4px;
+ cursor:pointer
+}
+button:hover,select:hover{background:#0ff;color:#000}
+.board{
+ display:grid;grid-template-columns:repeat(3,1fr);
+ gap:10px;margin:10px 0
+}
+.cell{
+ aspect-ratio:1/1;background:#0a0a0a;border:2px solid #333;
+ font-size:3rem;cursor:pointer;
+ display:flex;align-items:center;justify-content:center
+}
+.cell.X{color:var(--x);text-shadow:0 0 16px var(--x)}
+.cell.O{color:var(--o);text-shadow:0 0 16px var(--o)}
+.win{box-shadow:0 0 18px yellow}
+.stats{font-size:13px}
+</style>
+</head>
+
+<body>
+<div class="bg"></div>
+<div class="center">
+
+<!-- MENU -->
+<div class="card" id="menu">
+<h1>Tic Tac Toe</h1>
+<button onclick="chooseMode('bot')">VS BOT</button>
+<button onclick="chooseMode('pvp')">1 vs 1</button>
+
+<div id="botMenu" class="hidden">
+<p>BOT Difficulty</p>
+<select id="difficulty">
+<option value="easy">Easy</option>
+<option value="normal">Normal</option>
+<option value="hard" selected>Hard (Anti Kalah)</option>
+</select>
+
+<p>Series</p>
+<select id="bestof">
+<option value="3">Best of 3</option>
+<option value="5">Best of 5</option>
+</select>
+
+<br>
+<button onclick="startGame()">Play</button>
+</div>
+</div>
+
+<!-- GAME -->
+<div class="card hidden" id="game">
+<h1>Game</h1>
+<div id="status">Giliran X</div>
+
+<div class="stats">
+X: <span id="sx">0</span> |
+O: <span id="so">0</span> |
+Seri: <span id="sd">0</span><br>
+🔥 Streak: <span id="streak">0</span> |
+📈 Win Rate: <span id="wr">0%</span>
+</div>
+
+<div class="board" id="board"></div>
+
+<button onclick="resetBoard()">Next Round</button>
+<button onclick="backMenu()">Menu</button>
+</div>
+</div>
+
+<script>
+const menu=document.getElementById('menu');
+const game=document.getElementById('game');
+const boardEl=document.getElementById('board');
+const statusEl=document.getElementById('status');
+const botMenu=document.getElementById('botMenu');
+
+const sx=document.getElementById('sx');
+const so=document.getElementById('so');
+const sd=document.getElementById('sd');
+const streakEl=document.getElementById('streak');
+const wrEl=document.getElementById('wr');
+
+let cells=[],turn='X',active=true;
+let mode='pvp',difficulty='hard';
+let scoreX=0,scoreO=0,scoreD=0;
+let winStreak=0,totalGame=0;
+
+const W=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+for(let i=0;i<9;i++){
+ let c=document.createElement('div');
+ c.className='cell';
+ c.onclick=()=>move(i);
+ boardEl.appendChild(c);
+ cells.push(c);
+}
+
+function chooseMode(m){
+ mode=m;
+ if(m==='bot') botMenu.classList.remove('hidden');
+ else startGame();
+}
+
+function startGame(){
+ difficulty=document.getElementById('difficulty').value;
+ menu.classList.add('hidden');
+ game.classList.remove('hidden');
+ resetBoard();
+}
+
+function move(i){
+ if(!active||cells[i].textContent) return;
+ place(i,turn);
+ if(endCheck()) return;
+ turn=turn==='X'?'O':'X';
+ statusEl.textContent='Giliran '+turn;
+ if(mode==='bot'&&turn==='O') setTimeout(botMove,300);
+}
+
+function place(i,p){
+ cells[i].textContent=p;
+ cells[i].classList.add(p);
+}
+
+function endCheck(){
+ for(let w of W){
+  if(w.every(i=>cells[i].textContent===turn)){
+   w.forEach(i=>cells[i].classList.add('win'));
+   active=false;totalGame++;
+   if(turn==='X'){scoreX++;winStreak++}
+   else{scoreO++;winStreak=0}
+   updateStats();
+   statusEl.textContent=turn+' MENANG!';
+   return true;
+  }
+ }
+ if(cells.every(c=>c.textContent)){
+  active=false;totalGame++;scoreD++;winStreak=0;
+  updateStats();statusEl.textContent='SERI';
+  return true;
+ }
+ return false;
+}
+
+function updateStats(){
+ sx.textContent=scoreX;
+ so.textContent=scoreO;
+ sd.textContent=scoreD;
+ streakEl.textContent=winStreak;
+ wrEl.textContent=totalGame?Math.round(scoreX/totalGame*100)+'%':'0%';
+}
+
+function resetBoard(){
+ cells.forEach(c=>{c.textContent='';c.className='cell'});
+ turn='X';active=true;
+ statusEl.textContent='Giliran X';
+}
+
+function backMenu(){
+ resetBoard();
+ menu.classList.remove('hidden');
+ game.classList.add('hidden');
+}
+
+/* ===== BOT LOGIC ===== */
+function botMove(){
+ if(difficulty==="easy") randomBot();
+ else if(difficulty==="normal"){
+  Math.random()<0.5?randomBot():minimaxBot();
+ }else minimaxBot();
+}
+
+function randomBot(){
+ let e=cells.map((c,i)=>c.textContent==''?i:null).filter(i=>i!=null);
+ move(e[Math.floor(Math.random()*e.length)]);
+}
+
+function minimaxBot(){
+ let best=-Infinity,idx;
+ cells.forEach((c,i)=>{
+  if(c.textContent===""){
+   c.textContent="O";
+   let score=minimax(false);
+   c.textContent="";
+   if(score>best){best=score;idx=i}
+  }
+ });
+ move(idx);
+}
+
+function minimax(isMax){
+ let res=evaluate();
+ if(res!==null) return res;
+ if(isMax){
+  let best=-Infinity;
+  cells.forEach(c=>{
+   if(c.textContent===""){
+    c.textContent="O";
+    best=Math.max(best,minimax(false));
+    c.textContent="";
+   }
+  });
+  return best;
+ }else{
+  let best=Infinity;
+  cells.forEach(c=>{
+   if(c.textContent===""){
+    c.textContent="X";
+    best=Math.min(best,minimax(true));
+    c.textContent="";
+   }
+  });
+  return best;
+ }
+}
+
+function evaluate(){
+ for(let w of W){
+  if(w.every(i=>cells[i].textContent==="O")) return 1;
+  if(w.every(i=>cells[i].textContent==="X")) return -1;
+ }
+ if(cells.every(c=>c.textContent!=="")) return 0;
+ return null;
+}
+</script>
+</body>
+</html>
